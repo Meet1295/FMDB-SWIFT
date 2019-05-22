@@ -13,6 +13,7 @@ import FirebaseDatabase
 import IQKeyboardManagerSwift
 import Reachability
 import FMDB
+import CoreLocation
 
 //Firebase table Name
 let kTblUsers           = "users"
@@ -32,7 +33,7 @@ let kIsFromFirebase = "isFromFirebase"
 
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate,CLLocationManagerDelegate {
     
     var window: UIWindow?
     var ble: BLEPeripheralManager?
@@ -40,7 +41,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var fmdbManager : fmdbClass?
     var latitude = Double()
     var longitude = Double()
- 
+    let manager = CLLocationManager()
+    var location = CLLocation()
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         ble = BLEPeripheralManager()
@@ -98,6 +100,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         self.window?.makeKeyAndVisible()
     }    
+    
+    //MARK:-  GET LOCATION PERMISSION -
+    func getLocationPermission() {
+        if CLLocationManager.authorizationStatus() == .notDetermined {
+            manager.requestWhenInUseAuthorization()
+            manager.startUpdatingLocation()
+        }else if CLLocationManager.authorizationStatus() == .denied{
+            let alert = UIAlertController(title: "Need Authorization", message: "This app is needs authorize to use your location!", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+            alert.addAction(UIAlertAction(title: "Settings", style: .default, handler: { _ in
+                let url = URL(string: UIApplication.openSettingsURLString)!
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }))
+            if let app = UIApplication.shared.delegate as? AppDelegate, let keyWindow = app.window{
+                keyWindow.rootViewController?.present(alert, animated: true, completion: nil)
+            }
+        }else{
+            manager.startUpdatingLocation()
+        }
+        manager.delegate = self
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.first else { return }
+        self.location = location
+        manager.stopUpdatingLocation()
+    }
  
 }
 
